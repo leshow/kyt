@@ -37,6 +37,14 @@ module.exports = (optionalConfig) => {
     config.modifyWebpackConfig = (webpackConfig) => webpackConfig;
   }
 
+  const clientArr = config.clientURL.match('^(.*)://([A-Za-z0-9\-\.]+):([0-9]+)$');
+  const serverArr = config.serverURL.match('^(.*)://([A-Za-z0-9\-\.]+):([0-9]+)$');
+  // TODO: Add error handling
+  config.clientHostname = clientArr[2];
+  config.serverHostname = serverArr[2];
+  config.clientPort = clientArr[3];
+  config.serverPort = serverArr[3];
+    console.log(config);
   // In case `reactHotLoader` is undefined, make it a boolean
   config.reactHotLoader = !!config.reactHotLoader;
   global.config = Object.freeze(config);

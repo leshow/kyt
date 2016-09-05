@@ -26,6 +26,8 @@ module.exports = () => {
     clientConfig,
     serverConfig,
     clientPort,
+    clientHostname,
+    serverURL,
     serverPort,
     reactHotLoader,
   } = buildConfigs();
@@ -43,7 +45,7 @@ module.exports = () => {
 
     app.use(webpackDevMiddleware);
     app.use(hotMiddleware(clientCompiler));
-    app.listen(clientPort);
+    app.listen(clientPort, clientHostname);
   };
 
   const startHotServer = () => {
@@ -61,7 +63,7 @@ module.exports = () => {
         });
         server.start();
 
-        logger.task(`Server running at: http://localhost:${serverPort}`);
+        logger.task(`Server running at: ${serverURL}`);
         logger.end('Development started');
       }
     } catch (error) {

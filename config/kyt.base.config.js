@@ -3,8 +3,8 @@
 // Edit these properties to make changes.
 
 module.exports = {
-  clientPort: 3001,
-  serverPort: 3000,
+  clientURL: 'http://localhost:3001',
+  serverURL: 'http://localhost:3000',
   prototypePort: 3002,
   debug: false,
 };
