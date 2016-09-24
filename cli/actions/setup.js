@@ -17,7 +17,46 @@ const {
 } = require('../../utils/paths')(); // eslint-disable-line import/newline-after-import
 const kytPkg = require(path.join(__dirname, '../../package.json'));
 
-module.exports = (config, program) => {
+// Compare the Starter-kyt's package.json kyt.version
+// configuration to make sure kyt is an expected version.
+const checkStarterKytVersion = (tempPackageJSON, kytPkg) => {
+  const kytStarterVersion = (tempPackageJSON.kyt && tempPackageJSON.kyt.version) || null;
+  if (kytStarterVersion) {
+    if (!semver.satisfies(kytPkg.version, kytStarterVersion)) {
+      // eslint-disable-next-line max-len
+      logger.warn(`${tempPackageJSON.name} requires kyt version ${kytStarterVersion} but kyt ${kytPkg.version} is installed.`);
+    }
+  }
+  return true;
+};
+
+// Add dependencies, scripts and other package to
+// the user's package.json configuration.
+const updateUserPackageJSON = (defaultMode) => {
+  let userPackageJSON;
+  // Create a package.json definition if
+  // the user doesn't already have one.
+  if (shell.test('-f', userPackageJSONPath)) {
+    userPackageJSON = require(userPackageJSONPath); // eslint-disable-line global-require
+  } else {
+    userPackageJSON =
+      { name: '', version: '1.0.0', description: '', main: '', author: '', license: '' };
+    logger.task('Creating a new package.json. You should fill it in.');
+  }
+  // Clone the package.json so that we have a backup.
+  oldPackageJSON = Object.assign({}, userPackageJSON);
+
+  // Add dependencies from starter-kyts
+  if (!defaultMode) {
+    userPackageJSON = updatePackageJSONDependencies(userPackageJSON);
+  }
+  // Add scripts
+  userPackageJSON = addPackageJsonScripts(userPackageJSON);
+  fs.writeFileSync(userPackageJSONPath, JSON.stringify(userPackageJSON, null, 2));
+};
+
+module.exports = {
+  setup: (config, program) => {
   const args = program.args[0];
   const date = Date.now();
   const tmpDir = path.resolve(userRootPath, '\.kyt-tmp'); // eslint-disable-line no-useless-escape
@@ -35,17 +74,7 @@ module.exports = (config, program) => {
   // Comment the following to see verbose shell ouput.
   shell.config.silent = true;
 
-  // Compare the Starter-kyt's package.json kyt.version
-  // configuration to make sure kyt is an expected version.
-  const checkStarterKytVersion = () => {
-    const kytStarterVersion = (tempPackageJSON.kyt && tempPackageJSON.kyt.version) || null;
-    if (kytStarterVersion) {
-      if (!semver.satisfies(kytPkg.version, kytStarterVersion)) {
-        // eslint-disable-next-line max-len
-        logger.warn(`${tempPackageJSON.name} requires kyt version ${kytStarterVersion} but kyt ${kytPkg.version} is installed.`);
-      }
-    }
-  };
+
 
   // Adds dependencies from the starter-kyts package.json
   const updatePackageJSONDependencies = (packageJson) => {
@@ -112,30 +141,7 @@ module.exports = (config, program) => {
     return packageJson;
   };
 
-  // Add dependencies, scripts and other package to
-  // the user's package.json configuration.
-  const updateUserPackageJSON = (defaultMode) => {
-    let userPackageJSON;
-    // Create a package.json definition if
-    // the user doesn't already have one.
-    if (shell.test('-f', userPackageJSONPath)) {
-      userPackageJSON = require(userPackageJSONPath); // eslint-disable-line global-require
-    } else {
-      userPackageJSON =
-        { name: '', version: '1.0.0', description: '', main: '', author: '', license: '' };
-      logger.task('Creating a new package.json. You should fill it in.');
-    }
-    // Clone the package.json so that we have a backup.
-    oldPackageJSON = Object.assign({}, userPackageJSON);
 
-    // Add dependencies from starter-kyts
-    if (!defaultMode) {
-      userPackageJSON = updatePackageJSONDependencies(userPackageJSON);
-    }
-    // Add scripts
-    userPackageJSON = addPackageJsonScripts(userPackageJSON);
-    fs.writeFileSync(userPackageJSONPath, JSON.stringify(userPackageJSON, null, 2));
-  };
 
 
   // Cleans and reinstalls node modules.
@@ -316,7 +322,7 @@ module.exports = (config, program) => {
       }
       // eslint-disable-next-line global-require
       tempPackageJSON = require(`${tmpDir}/package.json`);
-      checkStarterKytVersion();
+      checkStarterKytVersion(tempPackageJSON, kytPkg);
       updateUserPackageJSON(false);
       installUserDependencies();
       createESLintFile();
@@ -401,4 +407,7 @@ module.exports = (config, program) => {
   } catch (err) {
     bailProcess(err);
   }
+},
+checkStarterKytVersion: checkStarterKytVersion,
+updateUserPackageJSON: updateUserPackageJSON,
 };
